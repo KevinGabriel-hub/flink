@@ -46,7 +46,6 @@ filtered_ds = ds.filter(lambda value: print(value) or int(value['message_level']
 
 
 
-
 # Define the schema for Kafka
 row_type_info = Types.ROW_NAMED(['message_id', 'message_body', 'message_time', 'message_level'],
                                 [Types.INT(), Types.STRING(), Types.STRING(), Types.INT()])

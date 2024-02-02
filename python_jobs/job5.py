@@ -24,7 +24,8 @@ t_env.execute_sql("""
         'topic' = 'source',
         'scan.startup.mode' = 'earliest-offset',
         'properties.bootstrap.servers' = 'kafka-kafka-bootstrap:9095',
-        'format' = 'json'
+        'format' = 'json',
+        'json.ignore-parse-errors' = 'true'
     );
 """)
 
@@ -36,12 +37,11 @@ ds_transformed = ds.map(
         value[0],
         value[1],
         value[2],
-        "JOB 4 " + value[3].upper() if value[3] is not None else "JOB 4",
+        "JOB 5 " + value[3].upper() if value[3] is not None else "JOB 5",
         value[4]
     ),
     output_type=row_type_info
 )
-
 json_serialization_schema = JsonRowSerializationSchema.builder().with_type_info(row_type_info).build()
 
 sink = KafkaSink.builder() \

@@ -49,6 +49,10 @@ spec:
             path: log4j-cli.properties
           - key: job4.py
             path: job4.py
+          - key: job5.py
+            path: job5.py
+          - key: job6.py
+            path: job6.py
       - name: flink-sql-volume
         configMap:
           name: flink-client-config

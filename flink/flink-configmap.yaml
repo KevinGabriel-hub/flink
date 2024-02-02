@@ -36,6 +36,9 @@ data:
     containerized.taskmanager.env.ENABLE_BUILT_IN_PLUGINS: "flink-s3-fs-hadoop-1.18.0.jar"
     rest.flamegraph.enabled: true
     metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+    restart-strategy.type: fixed-delay
+    restart-strategy.fixed-delay.attempts: 10
+    restart-strategy.fixed-delay.delay: 1 min
   log4j-console.properties: |+
     # This affects logging for both user code and Flink
     rootLogger.level = INFO

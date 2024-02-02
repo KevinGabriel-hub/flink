@@ -134,96 +134,185 @@ data:
   job4.py: |+
     from pyflink.table.table_environment import StreamTableEnvironment
     from pyflink.datastream import StreamExecutionEnvironment
-    from pyflink.common import Types, WatermarkStrategy
-    from pyflink.datastream.connectors.kafka import KafkaSource, KafkaOffsetsInitializer
-    from pyflink.datastream.formats.json import JsonRowDeserializationSchema
-    from pyflink.datastream.serialization import SimpleDeserializationSchema
-    import json
+    from pyflink.common import Types, Row
+    from pyflink.datastream.connectors.kafka import KafkaSink, KafkaRecordSerializationSchema
+    from pyflink.datastream.formats.json import JsonRowSerializationSchema
 
     # Create a StreamExecutionEnvironment
     env = StreamExecutionEnvironment.get_execution_environment()
     # Create a TableEnvironment
     t_env = StreamTableEnvironment.create(env)
 
-
     # Define the schema for Kafka
-    row_type_info = Types.ROW_NAMED(['user_id', 'item_id', 'category_id', 'behavior', 'ts', 'original_json'],
-                                    [Types.STRING(), Types.STRING(), Types.STRING(), Types.STRING(), Types.STRING(), Types.STRING()])
-    #json_deserialization_schema = JsonRowDeserializationSchema.builder().type_info(row_type_info).ignore_parse_errors().build()
-
-    class CustomJsonDeserializationSchema(SimpleDeserializationSchema):
-        def __init__(self, row_type_info):
-            self.row_type_info = row_type_info
-
-        def deserialize(self, message):
-            try:
-                json_object = json.loads(message)
-                user_id = json_object.get('user_id', None)
-                item_id = json_object.get('item_id', None)
-                category_id = json_object.get('category_id', None)
-                behavior = json_object.get('behavior', None)
-                ts = json_object.get('ts', None)
-
-                return user_id, item_id, category_id, behavior, ts
-            except json.JSONDecodeError:
-                # Return None for malformed JSON
-                return None
-
-    # Create a custom deserialization schema
-    custom_json_deserialization_schema = CustomJsonDeserializationSchema(row_type_info)
-
-    # Define the KafkaSource using the builder syntax
-    source = KafkaSource.builder() \
-        .set_bootstrap_servers("kafka-kafka-bootstrap:9095") \
-        .set_topics("source") \
-        .set_starting_offsets(KafkaOffsetsInitializer.earliest()) \
-        .set_value_only_deserializer(custom_json_deserialization_schema) \
-        .build()
-
-    ds = env.from_source(source, WatermarkStrategy.no_watermarks(), "Source")
-
-    # interpret the insert-only DataStream as a Table
-    source_table = t_env.from_data_stream(ds, custom_json_deserialization_schema)
-
-    t_env.create_temporary_view("source", source_table)
-
-    create_table_valid_records = """
-        CREATE TABLE sink (
-            user_id STRING,
-            item_id STRING,
-            category_id STRING,
+    row_type_info = Types.ROW_NAMED(['user_id', 'item_id', 'category_id', 'behavior', 'ts'],
+                                    [Types.INT(), Types.INT(), Types.INT(), Types.STRING(), Types.STRING()])
+    t_env.execute_sql("""
+        CREATE TABLE my_table (
+            user_id INT,
+            item_id INT,
+            category_id INT,
             behavior STRING,
             ts STRING
         ) WITH (
             'connector' = 'kafka',
-            'topic' = 'sink',
+            'topic' = 'source',
             'scan.startup.mode' = 'earliest-offset',
             'properties.bootstrap.servers' = 'kafka-kafka-bootstrap:9095',
             'format' = 'json'
         );
-    """
+    """)
 
-    create_table_error_records = """
-        CREATE TABLE sink_error (
-            original_json STRING
+    # Conversion between Table and DataStream
+    ds = t_env.to_append_stream(t_env.from_path('my_table'), row_type_info)
+
+    ds_transformed = ds.map(
+        lambda value: Row(
+            value[0],
+            value[1],
+            value[2],
+            "JOB 4 " + value[3].upper() if value[3] is not None else "JOB 4",
+            value[4]
+        ),
+        output_type=row_type_info
+    )
+    json_serialization_schema = JsonRowSerializationSchema.builder().with_type_info(row_type_info).build()
+
+    sink = KafkaSink.builder() \
+        .set_bootstrap_servers("kafka-kafka-bootstrap:9095") \
+        .set_record_serializer(
+            KafkaRecordSerializationSchema.builder()
+                .set_topic("sink")
+                .set_value_serialization_schema(json_serialization_schema)
+                .build()
+        ) \
+        .build()
+
+    # Add KafkaSink as a sink to the environment
+    ds_transformed.sink_to(sink)
+
+    # Execute the job
+    env.execute()
+  job5.py: |+
+    from pyflink.table.table_environment import StreamTableEnvironment
+    from pyflink.datastream import StreamExecutionEnvironment
+    from pyflink.common import Types, Row
+    from pyflink.datastream.connectors.kafka import KafkaSink, KafkaRecordSerializationSchema
+    from pyflink.datastream.formats.json import JsonRowSerializationSchema
+
+    # Create a StreamExecutionEnvironment
+    env = StreamExecutionEnvironment.get_execution_environment()
+    # Create a TableEnvironment
+    t_env = StreamTableEnvironment.create(env)
+
+    # Define the schema for Kafka
+    row_type_info = Types.ROW_NAMED(['user_id', 'item_id', 'category_id', 'behavior', 'ts'],
+                                    [Types.INT(), Types.INT(), Types.INT(), Types.STRING(), Types.STRING()])
+    t_env.execute_sql("""
+        CREATE TABLE my_table (
+            user_id INT,
+            item_id INT,
+            category_id INT,
+            behavior STRING,
+            ts STRING
         ) WITH (
             'connector' = 'kafka',
-            'topic' = 'sink_error',
+            'topic' = 'source',
             'scan.startup.mode' = 'earliest-offset',
             'properties.bootstrap.servers' = 'kafka-kafka-bootstrap:9095',
-            'format' = 'json'
+            'format' = 'json',
+            'json.ignore-parse-errors' = 'true'
         );
-    """
+    """)
 
-    # Execute CREATE TABLE statements
-    t_env.execute_sql(create_table_valid_records)
-    t_env.execute_sql(create_table_error_records)
+    # Conversion between Table and DataStream
+    ds = t_env.to_append_stream(t_env.from_path('my_table'), row_type_info)
 
-    stmt_set = t_env.create_statement_set()
+    ds_transformed = ds.map(
+        lambda value: Row(
+            value[0],
+            value[1],
+            value[2],
+            "JOB 5 " + value[3].upper() if value[3] is not None else "JOB 5",
+            value[4]
+        ),
+        output_type=row_type_info
+    )
+    json_serialization_schema = JsonRowSerializationSchema.builder().with_type_info(row_type_info).build()
 
-    stmt_set \
-        .add_insert_sql("INSERT INTO sink SELECT user_id, item_id, category_id, behavior, ts FROM source")
-    stmt_set \
-        .add_insert_sql("INSERT INTO sink_error SELECT original_json FROM source")
+    sink = KafkaSink.builder() \
+        .set_bootstrap_servers("kafka-kafka-bootstrap:9095") \
+        .set_record_serializer(
+            KafkaRecordSerializationSchema.builder()
+                .set_topic("sink")
+                .set_value_serialization_schema(json_serialization_schema)
+                .build()
+        ) \
+        .build()
 
-    stmt_set.execute()
+    # Add KafkaSink as a sink to the environment
+    ds_transformed.sink_to(sink)
+
+    # Execute the job
+    env.execute()
+  job6.py: |+
+    from pyflink.table.table_environment import StreamTableEnvironment
+    from pyflink.datastream import StreamExecutionEnvironment
+    from pyflink.common import Types, Row
+    from pyflink.datastream.connectors.kafka import KafkaSink, KafkaRecordSerializationSchema
+    from pyflink.datastream.formats.json import JsonRowSerializationSchema
+
+    # Create a StreamExecutionEnvironment
+    env = StreamExecutionEnvironment.get_execution_environment()
+    # Create a TableEnvironment
+    t_env = StreamTableEnvironment.create(env)
+
+    # Define the schema for Kafka
+    row_type_info = Types.ROW_NAMED(['user_id', 'item_id', 'category_id', 'behavior', 'ts'],
+                                    [Types.INT(), Types.INT(), Types.INT(), Types.STRING(), Types.STRING()])
+    t_env.execute_sql("""
+        CREATE TABLE my_table (
+            user_id INT,
+            item_id INT,
+            category_id INT,
+            behavior STRING,
+            ts STRING
+        ) WITH (
+            'connector' = 'kafka',
+            'topic' = 'source',
+            'scan.startup.mode' = 'earliest-offset',
+            'properties.bootstrap.servers' = 'kafka-kafka-bootstrap:9095',
+            'format' = 'json',
+            'json.fail-on-missing-field' = 'true'
+        );
+    """)
+
+    # Conversion between Table and DataStream
+    ds = t_env.to_append_stream(t_env.from_path('my_table'), row_type_info)
+
+    ds_transformed = ds.map(
+        lambda value: Row(
+            value[0],
+            value[1],
+            value[2],
+            "JOB 6 " + value[3].upper() if value[3] is not None else "JOB 6",
+            value[4]
+        ),
+        output_type=row_type_info
+    )
+    json_serialization_schema = JsonRowSerializationSchema.builder().with_type_info(row_type_info).build()
+
+    sink = KafkaSink.builder() \
+        .set_bootstrap_servers("kafka-kafka-bootstrap:9095") \
+        .set_record_serializer(
+            KafkaRecordSerializationSchema.builder()
+                .set_topic("sink")
+                .set_value_serialization_schema(json_serialization_schema)
+                .build()
+        ) \
+        .build()
+
+    # Add KafkaSink as a sink to the environment
+    ds_transformed.sink_to(sink)
+
+    # Execute the job
+    env.execute()
