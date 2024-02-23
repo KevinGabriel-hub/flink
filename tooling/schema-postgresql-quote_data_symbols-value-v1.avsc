@@ -1,0 +1,27 @@
+{
+  "connect.name": "quote_data_symbols",
+  "fields": [
+    {
+      "name": "key",
+      "type": "int"
+    },
+    {
+      "default": null,
+      "name": "symbol",
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    {
+      "default": null,
+      "name": "name",
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  ],
+  "name": "quote_data_symbols",
+  "type": "record"
+}

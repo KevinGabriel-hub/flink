@@ -1,0 +1,323 @@
+{
+  "type" : "record",
+  "name" : "QuoteData",
+  "namespace" : "com.marionete.datahub.schema.market",
+  "doc" : "A full snapshot of an FX liquidity price book containing 6 (should have been 30) levels of sorted bid and ask prices.\n    The levels should have been ranked from best(item 0) to worst(item 29).",
+  "fields" : [ {
+    "name" : "recordId",
+    "type" : "int",
+    "doc" : "internal number, corresponding to a UIC code in quote_data_symbols table"
+  }, {
+    "name" : "time",
+    "type" : "long",
+    "doc" : "Time, in 100-nanosecond units (also known as ticks) since 12:00 midnight, January 1, 0001 A.D. (C.E.) in the GregorianCalendar calendar. \n  A single tick represents one hundred nanoseconds or one ten-millionth of a second.\n  There are 10,000 ticks in a millisecond, or 10 million ticks in a second."
+  }, {
+    "name" : "arrivalTime",
+    "type" : "long",
+    "doc" : "Time the price book was received by the TickCollector. 100s of Nanoseconds since 1st January 1970 (ticks)."
+  }, {
+    "name" : "bid0Price",
+    "type" : [ "null", {
+        "name" : "price",
+        "type" : "double",
+        "doc" : "The price of a financial instrument. Where the currency is inferred (i.e. not populated) references to this types should clearly articulate in which currency the price is denominated."
+      }]
+  }, {
+    "name" : "bid0Ccy",
+    "type" : [ "null", {
+        "name" : "code",
+        "type" : "string",
+        "doc" : "Currency as represented by the three character alphabetic code as per ISO 3166\n\n   https://www.iso.org/iso-4217-currency-codes.html\n   https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/Currency"
+        } ]
+  }, {
+    "name" : "bid0Size",
+    "type" : [ "null", "int" ],
+    "doc" : "The amount the first bid price is good for.\n      Null when this amount is not defined.",
+    "default" : null
+  }, {
+    "name" : "bid0DataSource",
+    "type" : [ "null", "int" ],
+    "doc" : "The data source providing the best bid. Links to the FeedProviders protocol.\n      Null when this data source is not defined.",
+    "default" : null
+  }, {
+    "name" : "bid0AgeOffsetMsecs",
+    "type" : [ "null", "int" ],
+    "doc" : "The age of the first bid quote, in milliseconds.\n      Null when this age is not defined.",
+    "default" : null
+  }, {
+    "name": "bid1Price",
+    "type": ["null", {
+      "name": "price",
+      "type": "double",
+      "doc": "The price of a financial instrument. Where the currency is inferred (i.e. not populated) references to this types should clearly articulate in which currency the price is denominated."
+    }]
+  }, {
+    "name": "bid1Ccy",
+    "type": ["null", {
+      "name": "code",
+      "type": "string",
+      "doc": "Currency as represented by the three character alphabetic code as per ISO 3166\n\n   https://www.iso.org/iso-4217-currency-codes.html\n   https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/Currency"
+    }]
+  }, {
+    "name": "bid1Size",
+    "type": ["null", "int"],
+    "doc": "The amount the first bid price is good for.\n      Null when this amount is not defined.",
+    "default": null
+  }, {
+    "name": "bid1DataSource",
+    "type": ["null", "int"],
+    "doc": "The data source providing the best bid. Links to the FeedProviders protocol.\n      Null when this data source is not defined.",
+    "default": null
+  }, {
+    "name": "bid1AgeOffsetMsecs",
+    "type": ["null", "int"],
+    "doc": "The age of the first bid quote, in milliseconds.\n      Null when this age is not defined.",
+    "default": null
+  }, {
+    "name": "bid2Price",
+    "type": ["null", {
+      "name": "price",
+      "type": "double",
+      "doc": "The price of a financial instrument. Where the currency is inferred (i.e. not populated) references to this types should clearly articulate in which currency the price is denominated."
+    }]
+  }, {
+    "name": "bid2Ccy",
+    "type": ["null", {
+      "name": "code",
+      "type": "string",
+      "doc": "Currency as represented by the three character alphabetic code as per ISO 3166\n\n   https://www.iso.org/iso-4217-currency-codes.html\n   https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/Currency"
+    }]
+  }, {
+    "name": "bid2Size",
+    "type": ["null", "int"],
+    "doc": "The amount the first bid price is good for.\n      Null when this amount is not defined.",
+    "default": null
+  }, {
+    "name": "bid2DataSource",
+    "type": ["null", "int"],
+    "doc": "The data source providing the best bid. Links to the FeedProviders protocol.\n      Null when this data source is not defined.",
+    "default": null
+  }, {
+    "name": "bid2AgeOffsetMsecs",
+    "type": ["null", "int"],
+    "doc": "The age of the first bid quote, in milliseconds.\n      Null when this age is not defined.",
+    "default": null
+  },
+  
+  {
+    "name": "bid3Price",
+    "type": ["null", {
+      "name": "price",
+      "type": "double",
+      "doc": "The price of a financial instrument. Where the currency is inferred (i.e. not populated) references to this types should clearly articulate in which currency the price is denominated."
+    }]
+  }, {
+    "name": "bid3Ccy",
+    "type": ["null", {
+      "name": "code",
+      "type": "string",
+      "doc": "Currency as represented by the three character alphabetic code as per ISO 3166\n\n   https://www.iso.org/iso-4217-currency-codes.html\n   https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/Currency"
+    }]
+  }, {
+    "name": "bid3Size",
+    "type": ["null", "int"],
+    "doc": "The amount the first bid price is good for.\n      Null when this amount is not defined.",
+    "default": null
+  }, {
+    "name": "bid3DataSource",
+    "type": ["null", "int"],
+    "doc": "The data source providing the best bid. Links to the FeedProviders protocol.\n      Null when this data source is not defined.",
+    "default": null
+  }, {
+    "name": "bid3AgeOffsetMsecs",
+    "type": ["null", "int"],
+    "doc": "The age of the first bid quote, in milliseconds.\n      Null when this age is not defined.",
+    "default": null
+  },
+  
+  {
+    "name": "bid4Price",
+    "type": ["null", {
+      "name": "price",
+      "type": "double",
+      "doc": "The price of a financial instrument. Where the currency is inferred (i.e. not populated) references to this types should clearly articulate in which currency the price is denominated."
+    }]
+  }, {
+    "name": "bid4Ccy",
+    "type": ["null", {
+      "name": "code",
+      "type": "string",
+      "doc": "Currency as represented by the three character alphabetic code as per ISO 3166\n\n   https://www.iso.org/iso-4217-currency-codes.html\n   https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/Currency"
+    }]
+  }, {
+    "name": "bid4Size",
+    "type": ["null", "int"],
+    "doc": "The amount the first bid price is good for.\n      Null when this amount is not defined.",
+    "default": null
+  }, {
+    "name": "bid4DataSource",
+    "type": ["null", "int"],
+    "doc": "The data source providing the best bid. Links to the FeedProviders protocol.\n      Null when this data source is not defined.",
+    "default": null
+  }, {
+    "name": "bid4AgeOffsetMsecs",
+    "type": ["null", "int"],
+    "doc": "The age of the first bid quote, in milliseconds.\n      Null when this age is not defined.",
+    "default": null
+  }, {
+    "name" : "ask0Price",
+    "type" : [ "null", {
+        "name" : "price",
+        "type" : "double",
+        "doc" : "The price of a financial instrument. Where the currency is inferred (i.e. not populated) references to this types should clearly articulate in which currency the price is denominated."
+      }],
+    "doc" : "The first ask price (best ask).\n      Null when this price is not defined.",
+    "default" : null
+  }, {
+    "name" : "ask0Ccy",
+    "type" : [ "null", {
+        "name" : "code",
+        "type" : "string",
+        "doc" : "Currency as represented by the three character alphabetic code as per ISO 3166\n\n   https://www.iso.org/iso-4217-currency-codes.html\n   https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/Currency"
+        } ]
+  }, {
+    "name" : "ask0Size",
+    "type" : [ "null", "int" ],
+    "doc" : "The amount the first ask price is good for.\n      Null when this amount is not defined.",
+    "default" : null
+  }, {
+    "name" : "ask0DataSource",
+    "type" : [ "null", "int" ],
+    "doc" : "The data source providing the best ask. Links to the FeedProviders protocol.\n      Null when this data source is not defined.",
+    "default" : null
+  }, {
+    "name" : "ask0AgeOffsetMsecs",
+    "type" : [ "null", "int" ],
+    "doc" : "The age of the first ask quote, in milliseconds.\n      Null when this age is not defined.",
+    "default" : null
+  }, {
+    "name": "ask1Price",
+    "type": ["null", {
+      "name": "price",
+      "type": "double",
+      "doc": "The price of a financial instrument. Where the currency is inferred (i.e. not populated) references to this types should clearly articulate in which currency the price is denominated."
+    }],
+    "doc": "The first ask price (best ask).\n      Null when this price is not defined.",
+    "default": null
+  }, {
+    "name": "ask1Ccy",
+    "type": ["null", {
+      "name": "code",
+      "type": "string",
+      "doc": "Currency as represented by the three character alphabetic code as per ISO 3166\n\n   https://www.iso.org/iso-4217-currency-codes.html\n   https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/Currency"
+    }]
+  }, {
+    "name": "ask1Size",
+    "type": ["null", "int"],
+    "doc": "The amount the first ask price is good for.\n      Null when this amount is not defined.",
+    "default": null
+  }, {
+    "name": "ask1DataSource",
+    "type": ["null", "int"],
+    "doc": "The data source providing the best ask. Links to the FeedProviders protocol.\n      Null when this data source is not defined.",
+    "default": null
+  }, {
+    "name": "ask1AgeOffsetMsecs",
+    "type": ["null", "int"],
+    "doc": "The age of the first ask quote, in milliseconds.\n      Null when this age is not defined.",
+    "default": null
+  }, {
+    "name": "ask2Price",
+    "type": ["null", {
+      "name": "price",
+      "type": "double",
+      "doc": "The price of a financial instrument. Where the currency is inferred (i.e. not populated) references to this types should clearly articulate in which currency the price is denominated."
+    }],
+    "doc": "The first ask price (best ask).\n      Null when this price is not defined.",
+    "default": null
+  }, {
+    "name": "ask2Ccy",
+    "type": ["null", {
+      "name": "code",
+      "type": "string",
+      "doc": "Currency as represented by the three character alphabetic code as per ISO 3166\n\n   https://www.iso.org/iso-4217-currency-codes.html\n   https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/Currency"
+    }]
+  }, {
+    "name": "ask2Size",
+    "type": ["null", "int"],
+    "doc": "The amount the first ask price is good for.\n      Null when this amount is not defined.",
+    "default": null
+  }, {
+    "name": "ask2DataSource",
+    "type": ["null", "int"],
+    "doc": "The data source providing the best ask. Links to the FeedProviders protocol.\n      Null when this data source is not defined.",
+    "default": null
+  }, {
+    "name": "ask2AgeOffsetMsecs",
+    "type": ["null", "int"],
+    "doc": "The age of the first ask quote, in milliseconds.\n      Null when this age is not defined.",
+    "default": null
+  }, {
+    "name": "ask3Price",
+    "type": ["null", {
+      "name": "price",
+      "type": "double",
+      "doc": "The price of a financial instrument. Where the currency is inferred (i.e. not populated) references to this types should clearly articulate in which currency the price is denominated."
+    }],
+    "doc": "The first ask price (best ask).\n      Null when this price is not defined.",
+    "default": null
+  }, {
+    "name": "ask3Ccy",
+    "type": ["null", {
+      "name": "code",
+      "type": "string",
+      "doc": "Currency as represented by the three character alphabetic code as per ISO 3166\n\n   https://www.iso.org/iso-4217-currency-codes.html\n   https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/Currency"
+    }]
+  }, {
+    "name": "ask3Size",
+    "type": ["null", "int"],
+    "doc": "The amount the first ask price is good for.\n      Null when this amount is not defined.",
+    "default": null
+  }, {
+    "name": "ask3DataSource",
+    "type": ["null", "int"],
+    "doc": "The data source providing the best ask. Links to the FeedProviders protocol.\n      Null when this data source is not defined.",
+    "default": null
+  }, {
+    "name": "ask3AgeOffsetMsecs",
+    "type": ["null", "int"],
+    "doc": "The age of the first ask quote, in milliseconds.\n      Null when this age is not defined.",
+    "default": null
+  }, {
+    "name": "ask4Price",
+    "type": ["null", {
+      "name": "price",
+      "type": "double",
+      "doc": "The price of a financial instrument. Where the currency is inferred (i.e. not populated) references to this types should clearly articulate in which currency the price is denominated."
+    }],
+    "doc": "The first ask price (best ask).\n      Null when this price is not defined.",
+    "default": null
+  }, {
+    "name": "ask4Ccy",
+    "type": ["null", {
+      "name": "code",
+      "type": "string",
+      "doc": "Currency as represented by the three character alphabetic code as per ISO 3166\n\n   https://www.iso.org/iso-4217-currency-codes.html\n   https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/Currency"
+    }]
+  }, {
+    "name": "ask4Size",
+    "type": ["null", "int"],
+    "doc": "The amount the first ask price is good for.\n      Null when this amount is not defined.",
+    "default": null
+  }, {
+    "name": "ask4DataSource",
+    "type": ["null", "int"],
+    "doc": "The data source providing the best ask. Links to the FeedProviders protocol.\n      Null when this data source is not defined.",
+    "default": null
+  }, {
+    "name": "ask4AgeOffsetMsecs",
+    "type": ["null", "int"],
+    "doc": "The age of the first ask quote, in milliseconds.\n      Null when this age is not defined.",
+    "default": null
+  }]
+}
