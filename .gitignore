@@ -1,1 +1,76 @@
 .DS_Store
+
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+# Gradle
+.gradle/
+build/
+
+# IntelliJ
+.idea/
+*.iws
+*.iml
+
+# Eclipse
+.project
+.classpath
+.settings/
+.metadata/
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# VS Code
+.vscode/
+
+# Jekyll
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
+# BlueJ
+.bluej/
+
+# JAR files
+*.jar
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Bytecode
+*.class
+*.jar
+
+# SQL Databases
+*.h2.db
+*.hsql
+*.sqlite
+*.db
+*.DS_Store
+
+# Translation file
+*.pot
