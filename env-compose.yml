@@ -188,6 +188,6 @@ services:
       - schema-registry
     command: ["sh", "./register-connector.sh"]
 
-networks:
-  flink:
-    name: flink-network
+#networks:
+#  flink:
+#    name: flink-network
