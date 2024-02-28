@@ -95,7 +95,8 @@ t_env.execute_sql("""
         'topic' = 'quote-data-raw',
         'scan.startup.mode' = 'earliest-offset',
         'properties.bootstrap.servers' = 'kafka-1:9092,kafka-2:9092,kafka-3:9092',
-        'format' = 'avro'
+        'format' = 'avro-confluent',
+        'avro-confluent.url' = 'http://schema-registry:8081'
     );
 """)
 
@@ -198,20 +199,81 @@ t_env.execute_sql("""
         `ask4Ccy` STRING,
         `ask4Size` INT,
         `ask4DataSource` INT,
-        `ask4AgeOffsetMsecs` INT
+        `ask4AgeOffsetMsecs` INT,
+        `recordSymbol` STRING,
+        `recordName` STRING
     ) WITH (
         'connector' = 'kafka',
         'topic' = 'quote-data-enriched',
         'scan.startup.mode' = 'earliest-offset',
         'properties.bootstrap.servers' = 'kafka-1:9092,kafka-2:9092,kafka-3:9092',
-        'format' = 'avro'
+        'format' = 'avro-confluent',
+        'avro-confluent.url' = 'http://schema-registry:8081'
     );
 """)
 
-# Define INSERT INTO query
 insert_query = """
     INSERT INTO enriched_table
-    SELECT * FROM raw_data_table
+    SELECT `k`.`recordId`,
+           `k`.`time`,
+           `k`.`arrivalTime`,
+           `k`.`bid0Price`,
+           `k`.`bid0Ccy`,
+           `k`.`bid0Size`,
+           `k`.`bid0DataSource`,
+           `k`.`bid0AgeOffsetMsecs`,
+           `k`.`bid1Price`,
+           `k`.`bid1Ccy`,
+           `k`.`bid1Size`,
+           `k`.`bid1DataSource`,
+           `k`.`bid1AgeOffsetMsecs`,
+           `k`.`bid2Price`,
+           `k`.`bid2Ccy`,
+           `k`.`bid2Size`,
+           `k`.`bid2DataSource`,
+           `k`.`bid2AgeOffsetMsecs`,
+           `k`.`bid3Price`,
+           `k`.`bid3Ccy`,
+           `k`.`bid3Size`,
+           `k`.`bid3DataSource`,
+           `k`.`bid3AgeOffsetMsecs`,
+           `k`.`bid4Price`,
+           `k`.`bid4Ccy`,
+           `k`.`bid4Size`,
+           `k`.`bid4DataSource`,
+           `k`.`bid4AgeOffsetMsecs`,
+           `k`.`ask0Price`,
+           `k`.`ask0Ccy`,
+           `k`.`ask0Size`,
+           `k`.`ask0DataSource`,
+           `k`.`ask0AgeOffsetMsecs`,
+           `k`.`ask1Price`,
+           `k`.`ask1Ccy`,
+           `k`.`ask1Size`,
+           `k`.`ask1DataSource`,
+           `k`.`ask1AgeOffsetMsecs`,
+           `k`.`ask2Price`,
+           `k`.`ask2Ccy`,
+           `k`.`ask2Size`,
+           `k`.`ask2DataSource`,
+           `k`.`ask2AgeOffsetMsecs`,
+           `k`.`ask3Price`,
+           `k`.`ask3Ccy`,
+           `k`.`ask3Size`,
+           `k`.`ask3DataSource`,
+           `k`.`ask3AgeOffsetMsecs`,
+           `k`.`ask4Price`,
+           `k`.`ask4Ccy`,
+           `k`.`ask4Size`,
+           `k`.`ask4DataSource`,
+           `k`.`ask4AgeOffsetMsecs`,
+           `p`.`symbol` AS `recordSymbol`,
+           `p`.`name` AS `recordName`
+        FROM `raw_data_table` AS `k`
+          JOIN `postgres_table` AS `p`
+            ON `k`.`recordId` = `p`.`key` 
+              WHERE `k`.`ask0Price` IS NOT NULL AND `k`.`ask0Price` <> 0.0 AND
+                    `k`.`bid0Price` IS NOT NULL AND `k`.`bid0Price` <> 0.0;
 """
 
 # Execute the INSERT INTO query
