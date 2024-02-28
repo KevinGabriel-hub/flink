@@ -12,3 +12,13 @@ RUN wget -P /opt/flink/lib https://repo.maven.apache.org/maven2/org/apache/flink
     wget -P /opt/flink/lib https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.16.1/jackson-databind-2.16.1.jar && \
     wget -P /opt/flink/lib https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-core/2.16.1/jackson-core-2.16.1.jar && \
     wget -P /opt/flink/lib https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.16.1/jackson-annotations-2.16.1.jar
+
+# Install python3 and pip3
+RUN apt-get update -y && \
+    apt-get install -y  --no-install-recommends python3 python3-pip python3-dev && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    python -m pip install apache-flink
+
+COPY tooling/quote-data-enrichment.py ./
