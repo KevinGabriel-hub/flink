@@ -12,4 +12,3 @@ CREATE TABLE postgresTable (
    'username' = 'postgres',
    'password' = 'postgres'
 );
-

@@ -82,7 +82,8 @@ t_env.execute_sql("""
         `uniqueBidProviders` ARRAY<INT>,
         `uniqueAskProviders` ARRAY<INT>,
         `sumAllBidSizes` INT,
-        `sumAllAskSizes` INT
+        `sumAllAskSizes` INT,
+        `processing_time` AS PROCTIME()
     ) WITH (
         'connector' = 'kafka',
         'topic' = 'quote-data-summary',
