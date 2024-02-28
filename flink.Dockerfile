@@ -21,6 +21,11 @@ RUN apt-get update -y && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* && \
     ln -s /usr/bin/python3 /usr/bin/python && \
-    python -m pip install apache-flink
+    python -m pip install apache-flink && \
+    pip install avro-python3
 
+
+COPY tooling/quote-data-enrichment-sql.py ./
 COPY tooling/quote-data-enrichment.py ./
+COPY tooling/QuoteData.avsc ./
+COPY tooling/summary.py ./
