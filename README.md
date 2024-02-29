@@ -3,11 +3,9 @@
 Make sure to have Docker installed.
 Make sure you're in the right directory (`flink-env`).
 
-Before running docker-compose, we need to build three images:
+Before running docker-compose, we need to build two images:
 ```bash
 docker build -t tooling -f tooling.Dockerfile .
-
-docker build -t my-kafka-connect:latest -f kafka-connect.Dockerfile .
 
 docker build -t my-flink -f flink.Dockerfile .
 ```
@@ -20,7 +18,7 @@ docker-compose -f env-compose.yml up -d
 
 You can access Confluent Control Center at [localhost:9021](http://localhost:9021)
 
-TODO - You can access Hazelcast Management Center at [localhost:8080](http://localhost:8080). The cluster is setup in developer mode (i.e.: no security), so you will need to click the "Enable" dev mode button before you can access the cluster data.
+You can access Flink's JobManager at [localhost:8082](http://localhost:8082)
 
 You can tear down your environment by running
 ```bash
@@ -31,74 +29,129 @@ docker-compose -f env-compose.yml down
 This environment has been initially set up with data flowing into Kafka.
 ![image](resources/flink.png)
 
-Reference data is present in a PostgreSQL database, and being sourced to Kafka through a Kafka Connector. This is then made available under a `postgresql-quote_data_symbols` topic. There should be [50 symbols total](tooling/sql-data.sql). The [schema is available here](tooling/schema-postgresql-quote_data_symbols-value-v1.avsc).
+Reference data is present in a PostgreSQL database. There should be [50 symbols total](tooling/sql-data.sql). The [schema is available here](tooling/schema-postgresql-quote_data_symbols-value-v1.avsc).
 
 Streaming Data is being sent through a simple Data Generator application, written into a `quote-data-raw` topic. Data is generated every 25~75ms. The [schema is available here](tooling/QuoteData.avsc).
 
 You can access [Control Center](http://localhost:9021) to check topic data under port 9021.
 
 ## Lab
-The objective of this lab is to apply a series of transformations through the help of Hazelcast. Each stage should write the results back into Kafka. The data samples have been randomised, although they do resemble real use cases we have worked on before.
 
-### Step 1: Enrich and clean dataset
-Build a new topic based on the data being streamed to the `quote-data-raw`. It should be enriched with the data present in the `postgresql-quote_data_symbols`. The `recordId` from `quote-data-raw` can be matched with the `key` from `postgresql-quote_data_symbols` topic. Essentially, enrich the stream with two new fields: the `recordSymbol` and `recordName` fields.
-
-Besides the enrichment, we want to clean up any quote data entries whose Top of the Book prices are 0 or null, to create a stream of clean quote data. For the purposes of the exercise, you can assume that if either ask0price or bid0price are 0 or null, you can filter out the record. 
-
-> Hint: consider filtering before enriching for improved performance. 
-
-Keep the key as it comes from the original source: `{recordId}`
-
-The output topic should be named `quote-data-enriched`. It should contain all the fields from `quote-data-raw`, as well as the two additional fields from `postgresql-quote_data_symbols` (i.e.: `recordSymbol` and `recordName`).
-
-### Step 2: Summary dataset
-The purpose of this step is to publish a Summary derived from the enriched stream of data coming out from the `quote-data-enriched` topic. There is a one-to-one correspondence between an enriched quote data message and its summary (i.e. no aggregations are performed). As thus, an enriched quote data message and its corresponding quote data summary share the same key.
-
-The output topic should be named `quote-data-summary` and have the expected Message fields as defined in the table below:
-
-| Field              | Correspondence to QuoteDataEnriched                                                 |
-|--------------------|-----------------------------------------------------------------------------|
-| recordId           | recordId                                                                    |
-| tobBid             | bid0Price                                                                   |
-| tobAsk             | ask0Price                                                                   |
-| uniqueBidProviders | Mathematical set containing all the unique bidNDataSource, where n E 0...5 |
-| uniqueAskProviders | Mathematical set containing all the unique askNDataSource, where n E 0...5 |
-| sumAllBidSizes     | Sum of all bidNSize, where n E 0...5                                       |
-| sumAllAskSizes     | Sum of all askNSize, where n E 0...5                                       |
-
-
-### Step 3: Statistics dataset
-This step should generated statistics from the `quote-data-summary` topic.
-In summary, what this stream processor does is:
-1. Consume messages from input quote `quote-data-summary` topic;
-2. Group messages by recordId and create a hopping time window;
-3. Calculate statistics for each time-windowed aggregation;
-4. Generate a stream of quote data statistics using the intermediary objects created in the previous steps and publish to an output topic named `quote-data-statistics`
-
-The key for `quote-data-statistics` is composed of the `recordId` and the window start time and end. Like so,
-```
-[recordId@window_start/window_end]
+### Step 1: Enrich and clean dataset (Solution)
+1. Go into the JobManager instance.
+2. Submit the pyflink job.
+```bash
+flink run -p 1 -py quote-data-enrichment-sql.py -d &
 ```
 
-We expect the message fields to look like the below table:
+The [solution is available here](tooling/quote-data-enrichment-sql.py)
 
-| Field           | Correspondence to QuoteDataSummary               |
-|-----------------|--------------------------------------------------|
-| recordId        | recordId                                         |
-| avgTobBid       | Average of all tobBid prices in the time window  |
-| avgTobAsk       | Average of all tobAsk prices in the time window  |
-| maxTobBid       | Maximum of all tobBid prices in the time window  |
-| minTobAsk       | Minimum of all tobAsk prices in the time window  |
-| maxSumBidAmount | Maximum of all sumAllBidSizes in the time window |
-| maxSumAskAmount | Maximum of all sumAllAskSizes in the time window |
-| minSumBidAmount | Minimum of all sumAllBidSizes in the time window |
-| minSumAskAmount | Minimum of all sumAllAskSizes in the time window |
+The solution defines a Kafka source table 'raw_data_table', using a SQL Schema, that will consume from the 'quote-data-raw' topic with Avro Confluent format. Creates a JDBC table for PostgreSQL, using a SQL Schema. Defines a Kafka sink table 'enriched_table', using a SQL Schema, that will sink data into the 'quote-data-enriched' topic with Avro Confluent format. Executes an INSERT INTO query (representing a Flink job) to join and filter data from the source tables before inserting it into the enriched Kafka sink table.
 
-> Note: Min tobBid and max tobAsk are indeed meant to not be included as fields for statistics;
+### Step 2: Summary dataset (Solution)
+1. Go into the JobManager instance.
+2. Submit the pyflink job.
+```bash
+flink run -p 1 -py quote-data-summary-sql.py -d &
+```
 
-### Step 4: Output/Visualise results
-The final step is to visualise the data generated in steps 3 and 4. Any tooling can be used to the effect, from printing to the console, to visualisations in tooling like Grafana, VictoriaMetrics, or anything the reader thinks can convey the data best.
+The [solution is available here](tooling/quote-data-summary-sql.py)
+
+The solution defines a Kafka source table 'enriched_table', using a SQL Schema, that will consume from the 'quote-data-enriched' topic with Avro Confluent format. Defines a Kafka sink table 'summary_table', using a SQL Schema, that will sink data into the 'quote-data-summary' topic with Avro Confluent format. Executes an INSERT INTO query (representing a Flink job) to calculate and insert summarized data into the summary_table based on the data from the enriched_table.
+
+### Step 3: Statistics dataset (Solution)
+1. Go into the JobManager instance.
+2. Submit the pyflink job.
+```bash
+flink run -p 1 -py quote-data-statistics-sql.py -d &
+```
+
+The [solution is available here](tooling/quote-data-statistics-sql.py)
+
+The solution defines a Kafka source table 'summary_table', using a SQL Schema, that will consume from the 'quote-data-summary' topic with Avro Confluent format. Defines a Kafka sink table 'statistics_table', using a SQL Schema, that will sink data into the 'quote-data-statistics' topic with Avro Confluent format, and using the 'upsert-kafka' connector. Executes an INSERT INTO query (representing a Flink job) using a hoping window aggregation to insert/update data into the statistics_table.
+
+### Step 4: Output/Visualise results (Solutions)
+Solution 1:
+1. Go into the JobManager instance.
+2. Execute the Flink SQL-Client
+```bash
+./bin/sql-client.sh
+```
+3. Define a table 'summary_table' that will consume from the topic 'quote-data-summary'.
+```sql
+CREATE TABLE summary_table (
+    `recordId` INT,
+    `tobBid` DOUBLE,
+    `tobAsk` DOUBLE,
+    `uniqueBidProviders` ARRAY<INT>,
+    `uniqueAskProviders` ARRAY<INT>,
+    `sumAllBidSizes` INT,
+    `sumAllAskSizes` INT,
+    `processing_time` AS PROCTIME()
+) WITH (
+    'connector' = 'kafka',
+    'topic' = 'quote-data-summary',
+    'scan.startup.mode' = 'earliest-offset',
+    'properties.bootstrap.servers' = 'kafka-1:9092,kafka-2:9092,kafka-3:9092',
+    'format' = 'avro-confluent',
+    'avro-confluent.url' = 'http://schema-registry:8081'
+);
+```
+4. Execute a hoping window aggregation on the 'summary_table'.
+```sql
+SELECT
+  recordId, 
+  AVG(tobBid) AS avgTobBid, 
+  AVG(tobAsk) AS avgTobAsk, 
+  MAX(tobBid) AS maxTobBid,
+  MIN(tobAsk) AS minTobAsk,
+  MAX(sumAllBidSizes) AS maxSumBidAmount,
+  MAX(sumAllAskSizes) AS maxSumAskAmount,
+  MIN(sumAllBidSizes) AS minSumBidAmount,
+  MIN(sumAllAskSizes) AS minSumAskAmount
+FROM TABLE(
+  HOP(TABLE summary_table, DESCRIPTOR(processing_time), INTERVAL '5' SECOND, INTERVAL '10' SECOND))
+GROUP BY recordId;
+```
+
+Solution 2:
+1. Go into the JobManager instance.
+2. Execute the Flink SQL-Client
+```bash
+./bin/sql-client.sh
+```
+3. Define a table 'statistics_table' that will consume from the topic 'quote-data-statistics' using the 'upsert-kafka' connector.
+```sql
+CREATE TABLE statistics_table (
+    `recordId` INT,
+    `avgTobBid` DOUBLE,
+    `avgTobAsk` DOUBLE,
+    `maxTobBid` DOUBLE,
+    `minTobAsk` DOUBLE,
+    `maxSumBidAmount` INT,
+    `maxSumAskAmount` INT,
+    `minSumBidAmount` INT,
+    `minSumAskAmount` INT,
+    PRIMARY KEY (`recordId`) NOT ENFORCED
+) WITH (
+    'connector' = 'upsert-kafka',
+    'topic' = 'quote-data-statistics',
+    'properties.bootstrap.servers' = 'kafka-1:9092,kafka-2:9092,kafka-3:9092',
+    'key.format' = 'avro-confluent',
+    'key.avro-confluent.url' = 'http://schema-registry:8081',
+    'value.format' = 'avro-confluent',
+    'value.avro-confluent.url' = 'http://schema-registry:8081'
+);
+```
+4. Make a SELECT on the 'statistics_table' to retrieve the topic data.
+```sql
+SELECT * FROM statistics_table;
+```
+
+# Notes
+1. The solutions were developed with python and using a SQL API, however in the flink-quickstart-java is a Java example on how to create a simple Kafka source/sink and a JDBC connection to postgresDB.
+2. In the file windowing-queries.sql are some examples of windowing functions.
 
 # Troubleshooting
-Q: I can't see the `postgresql-quote_data_symbols` topic?
-A: Sometimes Connect is available, but rejects some curl commands. If this is the case, simply re-execute the docker-compose command to deploy the connector, e.g.: `docker-compose -f env-compose.yml up register-connector`
+Q: Q
+A: A

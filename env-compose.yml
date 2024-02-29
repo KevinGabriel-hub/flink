@@ -181,13 +181,3 @@ services:
     depends_on:
       - schema-registry
     command: ["/usr/local/bin/wait-for-it.sh", "schema-registry:8081", "--", "python", "./data-producer.py"]
-
-  register-connector:
-    image: tooling 
-    depends_on:
-      - schema-registry
-    command: ["sh", "./register-connector.sh"]
-
-#networks:
-#  flink:
-#    name: flink-network
