@@ -19,14 +19,10 @@ RUN pip install requests fastavro confluent-kafka avro-python3
 # COPY register_schema.py ./
 COPY tooling/QuoteData.avsc ./
 COPY tooling/data-producer.py ./
-COPY tooling/kafka-connect-refdata.json ./
-COPY tooling/register-connector.sh ./
-COPY tooling/quote-data-enrichment.py ./
 
 # Copy the script into the image
 COPY tooling/wait-for-it.sh /usr/local/bin/wait-for-it.sh
 # Make the script executable
 RUN chmod +x /usr/local/bin/wait-for-it.sh
-RUN chmod +x ./register-connector.sh
 
 CMD ["python", "./data-producer.py"]
