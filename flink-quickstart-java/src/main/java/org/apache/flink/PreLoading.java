@@ -1,10 +1,15 @@
 package org.apache.flink;
 
+import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.api.java.tuple.Tuple5;
+import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.api.common.state.MapState;
+import org.apache.flink.api.common.state.MapStateDescriptor;
+import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
-
-import java.util.Properties;
 
 public class PreLoading {
 
@@ -13,6 +18,35 @@ public class PreLoading {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         // Set up the Flink table environment
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
+
+        // Preload the iptable into keyed state
+        MapStateDescriptor<String, Tuple5<String, String, String, String, String>> iptableDescriptor =
+                new MapStateDescriptor<>("iptable",
+                        Types.STRING,
+                        Types.TUPLE(Types.STRING, Types.STRING, Types.STRING, Types.STRING, Types.STRING));
+        DataStream<Tuple5<String, String, String, String, String>> iptableStream = env.addSource(new IPTableSource());
+
+        // Create a keyed state for iptable
+        DataStream<Tuple5<String, String, String, String, String>> populatedIptableStream = iptableStream
+                .keyBy((KeySelector<Tuple5<String, String, String, String, String>, String>) value -> value.f0)
+                .map(new RichMapFunction<Tuple5<String, String, String, String, String>, Tuple5<String, String, String, String, String>>() {
+                    private MapState<String, Tuple5<String, String, String, String, String>> iptableState;
+
+                    @Override
+                    public void open(Configuration parameters) throws Exception {
+                        super.open(parameters);
+                        iptableState = getRuntimeContext().getMapState(iptableDescriptor);
+                    }
+
+                    @Override
+                    public Tuple5<String, String, String, String, String> map(Tuple5<String, String, String, String, String> value) throws Exception {
+                        iptableState.put(value.f0, value);
+                        return value;
+                    }
+                });
+
+        // Register the populatedIptableStream as a table
+        tableEnv.createTemporaryView("iptable", populatedIptableStream);
 
         String create_syslog_source_table = "CREATE TABLE syslog_raw (\n" +
                 "    message_timestamp STRING,\n" +
@@ -30,24 +64,6 @@ public class PreLoading {
                 "    'format' = 'json'\n" +
                 ")";
         tableEnv.executeSql(create_syslog_source_table);
-
-        // Register the MySQL table with Flink SQL API
-        String create_mysql_table = "CREATE TABLE iptable (\n" +
-                "    ip_address STRING,\n" +
-                "    hostname STRING,\n" +
-                "    spi STRING,\n" +
-                "    network STRING,\n" +
-                "    region STRING\n" +
-                ") WITH (\n" +
-                "    'connector' = 'jdbc',\n" +
-                "    'url' = 'jdbc:mysql://mysql:3306/flink',\n" +
-                "    'table-name' = 'your_table_name',\n" +
-                "    'username' = 'flink',\n" +
-                "    'password' = 'password',\n" +
-                "    'driver' = 'com.mysql.jdbc.Driver'\n" +
-                ")";
-        tableEnv.executeSql(create_mysql_table);
-        //Table resultTable = tableEnv.sqlQuery("SELECT * FROM iptable");
 
         String create_syslog_enriched_table = "CREATE TABLE syslog_enriched (\n" +
                 "    message_timestamp STRING,\n" +
@@ -68,13 +84,11 @@ public class PreLoading {
 
         // Create a new table containing the result of the join
         String insertQuery = "INSERT INTO syslog_enriched " +
-                "SELECT k.message_timestamp, k.hostname, k.app, k.ip_address, m.ip_address, m.hostname " +
+                "SELECT k.message_timestamp, k.hostname, k.app, k.ip_address, m.f0, m.f1 " +
                 "FROM syslog_raw AS k " +
-                "JOIN iptable AS m ON k.ip_address = m.ip_address";
+                "JOIN iptable AS m ON k.ip_address = m.f0";
 
         // Execute the query
         tableEnv.executeSql(insertQuery);
-
-        //env.execute("Kafka New Example");
     }
 }
