@@ -1,5 +1,13 @@
 package org.apache.flink;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
+import org.apache.flink.connector.kafka.sink.KafkaSink;
+import org.apache.flink.connector.kafka.source.KafkaSource;
+import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
+import org.apache.flink.model.Syslog;
+import org.apache.flink.schema.SyslogDeserializationSchema;
+import org.apache.flink.schema.SyslogSerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.EnvironmentSettings;
@@ -15,61 +23,32 @@ import java.util.Properties;
 public class KafkaSourceSinkExample {
 
     public static void main(String[] args) throws Exception {
-        // Set up the Flink execution environment
+
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        //StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
 
-        // Set up the Flink table environment
-        // EnvironmentSettings settings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
-        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env); //, settings
+        KafkaSource<Syslog> source1 = KafkaSource.<Syslog>builder()
+                .setBootstrapServers("kafka-1:9092")
+                .setTopics("source")
+                .setGroupId("group1")
+                .setStartingOffsets(OffsetsInitializer.earliest())
+                .setValueOnlyDeserializer(new SyslogDeserializationSchema())
+                .build();
 
-        // Configure Kafka consumer properties
-        Properties consumerProps = new Properties();
-        consumerProps.setProperty("bootstrap.servers", "kafka-1:9092");
-        consumerProps.setProperty("group.id", "flink-consumer-group");
+        DataStream<Syslog> kafkaStream = env.fromSource(
+                source1, WatermarkStrategy.noWatermarks(), "Kafka Source");
 
-        // Configure Kafka producer properties
-        Properties producerProps = new Properties();
-        producerProps.setProperty("bootstrap.servers", "kafka-1:9092");
 
-        // Create a Kafka source
-        FlinkKafkaConsumer<String> kafkaConsumer = new FlinkKafkaConsumer<>(
-                "quote-data-raw",
-                new SimpleStringSchema(),
-                consumerProps
-        );
+        KafkaSink<Syslog> sink = KafkaSink.<Syslog>builder()
+                .setBootstrapServers("kafka-1:9092")
+                .setRecordSerializer(KafkaRecordSerializationSchema.builder()
+                        .setTopic("sink")
+                        .setValueSerializationSchema(new SyslogSerializationSchema())
+                        .build()
+                )//.setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+                .build();
 
-        // Create a Kafka sink
-        FlinkKafkaProducer<String> kafkaProducer = new FlinkKafkaProducer<>(
-                "quote-data-enriched",
-                new SimpleStringSchema(),
-                producerProps
-        );
-
-        // Register the PostgreSQL table with Flink SQL API
-        String ddl = "CREATE TABLE postgresTable (\n" +
-                "    key INT,\n" +
-                "    symbol STRING,\n" +
-                "    name STRING\n" +
-                ") WITH (\n" +
-                "   'connector' = 'jdbc',\n" +
-                "   'url' = 'jdbc:postgresql://postgres:5432/postgres',\n" +
-                "   'table-name' = 'quote_data_symbols',\n" +
-                "   'username' = 'postgres',\n" +
-                "   'password' = 'postgres'\n" +
-                ")";
-        tableEnv.executeSql(ddl);
-
-        // Set up the Flink job
-        DataStream<String> kafkaStream = env.addSource(kafkaConsumer);
-
-        // Write the original Kafka stream to the Kafka sink without any transformation
-        kafkaStream.addSink(kafkaProducer);
-
-        // Query from the PostgreSQL table using Flink SQL
-        Table resultTable = tableEnv.sqlQuery("SELECT * FROM postgresTable");
-
-        // Print the result to the console (you can replace this with your desired sink)
-        tableEnv.toRetractStream(resultTable, Row.class).print();
+        kafkaStream.sinkTo(sink);
 
         // Execute the Flink job
         env.execute("Kafka Source Sink Example");

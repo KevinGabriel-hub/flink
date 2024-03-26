@@ -1,11 +1,9 @@
 package org.apache.flink;
 
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 
-import java.util.Properties;
-public class processTableAPI {
+public class ProcessTableAPI {
     public static void main(String[] args) throws Exception {
         // Set up the Flink execution environment
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -45,7 +43,6 @@ public class processTableAPI {
                 "    'driver' = 'com.mysql.jdbc.Driver'\n" +
                 ")";
         tableEnv.executeSql(create_mysql_table);
-        //Table resultTable = tableEnv.sqlQuery("SELECT * FROM iptable");
 
         String create_syslog_enriched_table = "CREATE TABLE syslog_enriched (\n" +
                 "    message_timestamp STRING,\n" +
@@ -72,7 +69,5 @@ public class processTableAPI {
 
         // Execute the query
         tableEnv.executeSql(insertQuery);
-
-        //env.execute("Kafka New Example");
     }
 }
