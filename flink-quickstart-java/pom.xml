@@ -82,7 +82,12 @@ RUN wget -P /opt/flink/lib https://repo.maven.apache.org/maven2/org/apache/flink
             <artifactId>connect-api</artifactId>
             <version>3.5.0</version>
         </dependency>
-        <!-- Thanks for using https://jar-download.com -->
+
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-jdbc_2.12</artifactId>
+            <version>1.14.6</version>
+        </dependency>
 
     </dependencies>
 </project>

@@ -21,8 +21,8 @@ public class ProgJoinQuery {
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
 
         KafkaSource<Syslog> source1 = KafkaSource.<Syslog>builder()
-                .setBootstrapServers("kafka-1:9092")
-                .setTopics("source")
+                .setBootstrapServers("kafka-kafka-bootstrap:9095")
+                .setTopics("syslog-generated")
                 .setGroupId("group1")
                 .setStartingOffsets(OffsetsInitializer.earliest())
                 .setValueOnlyDeserializer(new SyslogDeserializationSchema())
@@ -32,6 +32,8 @@ public class ProgJoinQuery {
                 source1, WatermarkStrategy.noWatermarks(), "Kafka Source");
 
         tableEnv.createTemporaryView("syslog_raw", kafkaStream);
+
+        //tableEnv.from("syslog_raw").printSchema();
 
         // Register the MySQL table with Flink SQL API
         String create_mysql_table = "CREATE TABLE iptable (\n" +
@@ -50,6 +52,8 @@ public class ProgJoinQuery {
                 ")";
         tableEnv.executeSql(create_mysql_table);
 
+        //tableEnv.from("iptable").printSchema();
+
         Table result =
                 tableEnv.sqlQuery(
                         "SELECT " +
@@ -65,13 +69,15 @@ public class ProgJoinQuery {
                                 "ON k.ip_address = m.ip_address"
                 );
 
+        //result.printSchema();
+
         DataStream<SyslogEnriched> syslogEnrichedTable = tableEnv.toDataStream(result,
                 SyslogEnriched.class);
 
         KafkaSink<SyslogEnriched> sink = KafkaSink.<SyslogEnriched>builder()
-                .setBootstrapServers("kafka-1:9092")
+                .setBootstrapServers("kafka-kafka-bootstrap:9095")
                 .setRecordSerializer(KafkaRecordSerializationSchema.builder()
-                        .setTopic("sink")
+                        .setTopic("syslog-enriched")
                         .setValueSerializationSchema(new SyslogEnrichedSerializationSchema())
                         .build()
                 )//.setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
